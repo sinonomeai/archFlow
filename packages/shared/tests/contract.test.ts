@@ -32,7 +32,7 @@ describe("Graph（P0-13）", () => {
   it("拒绝未知节点类型", () => {
     const result = Graph.safeParse({
       ...validGraph,
-      nodes: [{ id: "node-queue", type: "queue", label: "消息队列" }],
+      nodes: [{ id: "node-bus", type: "message-bus", label: "消息总线" }],
       edges: [],
     });
 

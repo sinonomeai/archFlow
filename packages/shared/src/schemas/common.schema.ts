@@ -75,15 +75,48 @@ export const NodeType = z.enum([
   "worker",
   "database",
   "cache",
+  "queue",
+  "storage",
+  "search",
+  "external",
+  "table",
 ]);
 export type NodeType = z.infer<typeof NodeType>;
 
-/** 图节点：坐标不入库，布局由前端 Dagre 计算。 */
+/** 数据库表字段：表节点专属，组件节点不填。 */
+export const TableColumn = z.strictObject({
+  name: z.string().trim().min(1).max(64),
+  type: z.string().trim().min(1).max(64),
+  nullable: z.boolean().optional(),
+  primaryKey: z.boolean().optional(),
+  foreignKey: z.string().trim().max(64).optional(),
+  description: z.string().trim().max(200).optional(),
+});
+export type TableColumn = z.infer<typeof TableColumn>;
+
+export const TableSchema = z.strictObject({
+  name: z.string().trim().min(1).max(64),
+  columns: z.array(TableColumn).min(1).max(40),
+});
+export type TableSchema = z.infer<typeof TableSchema>;
+
+/** 数据流语义：用于边的线型、颜色、图例和悬停说明。 */
+export const DataFlow = z.strictObject({
+  kind: z.enum(["sync", "async", "data", "control"]),
+  protocol: z.string().trim().max(40).optional(),
+  direction: z.enum(["one-way", "request-response"]).optional(),
+  payload: z.string().trim().max(200).optional(),
+});
+export type DataFlow = z.infer<typeof DataFlow>;
+
+/** 图节点：语义图不含坐标；坐标存独立的画布布局表。 */
 export const GraphNode = z.strictObject({
   id: Id,
   type: NodeType,
   label: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional(),
+  /** type = table 时必填；其他类型忽略。 */
+  table: TableSchema.optional(),
 });
 export type GraphNode = z.infer<typeof GraphNode>;
 
@@ -93,6 +126,7 @@ export const GraphEdge = z.strictObject({
   source: Id,
   target: Id,
   label: z.string().trim().max(120).optional(),
+  dataFlow: DataFlow.optional(),
 });
 export type GraphEdge = z.infer<typeof GraphEdge>;
 

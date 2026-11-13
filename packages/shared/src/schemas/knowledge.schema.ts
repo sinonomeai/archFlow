@@ -8,6 +8,33 @@ import {
   PaginationQuery,
 } from "./common.schema.js";
 
+/** 单文件上限（§7.1）。 */
+export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
+
+/** 扩展名白名单（§7.1）：不在表内一律 415。 */
+export const FILE_EXTENSION_TO_TYPE: Record<string, FileType> = {
+  md: "text",
+  markdown: "text",
+  txt: "text",
+  png: "image",
+  jpg: "image",
+  jpeg: "image",
+  webp: "image",
+  pdf: "pdf",
+  docx: "docx",
+};
+
+export const SUPPORTED_FILE_ACCEPT = Object.keys(FILE_EXTENSION_TO_TYPE)
+  .map((extension) => `.${extension}`)
+  .join(",");
+
+/** 按扩展名解析 fileType；不在白名单内返回 null。 */
+export const resolveFileType = (fileName: string): FileType | null => {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  return extension ? (FILE_EXTENSION_TO_TYPE[extension] ?? null) : null;
+};
+
 /** 知识库文件完整元信息（§7.3）；项目树里用精简的 FileBrief。 */
 export const FileMeta = z.object({
   id: Id,

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FinishReason, Id, ISODateTime, RunStatus } from "./common.schema.js";
+import { ConstraintCard } from "./conversation.schema.js";
 
 /** 运行失败明细：code 是 §1.5 的常量表，message 只承载展示文案。 */
 export const RunError = z.object({
@@ -29,17 +30,45 @@ export const InterruptKind = z.enum(["clarification", "approval", "review"]);
 export type InterruptKind = z.infer<typeof InterruptKind>;
 
 /**
+ * 中断载荷：MVP 只用 clarification + 约束卡片。
+ * approval / review 先保留结构，post-MVP 再扩展。
+ */
+export const InterruptPayload = z.object({
+  question: z.string().optional(),
+  /** clarification 对应的约束字段，resume 时按此字段回写。 */
+  field: z.string().optional(),
+  card: ConstraintCard.optional(),
+  toolName: z.string().optional(),
+  toolArguments: z.record(z.string(), z.unknown()).optional(),
+  /** 架构生成后的设计取舍追问轮次（持久化到 runs.metadata）。 */
+  designRounds: z.number().int().nonnegative().optional(),
+});
+export type InterruptPayload = z.infer<typeof InterruptPayload>;
+
+/**
  * HITL 中断：落 `runs.metadata.interrupt`，重连时从库里重放。
- * `payload` 的具体字段由对应节点在 P0-07 定义，这里先约束为 JSON 对象。
  */
 export const Interrupt = z.object({
   interruptId: Id,
   kind: InterruptKind,
   node: z.string().min(1).max(50),
-  payload: z.record(z.string(), z.unknown()),
+  payload: InterruptPayload,
   expiresAt: ISODateTime,
 });
 export type Interrupt = z.infer<typeof Interrupt>;
+
+/** runs.metadata 的内部结构；不直接暴露给前端。 */
+export const RunMetadata = z.object({
+  interrupt: Interrupt.nullable().optional(),
+  /** 已执行过的工具调用 ID，恢复时用于幂等跳过。 */
+  executedToolCalls: z.array(z.string()).optional(),
+  resumeCount: z.number().int().nonnegative().optional(),
+  traceId: z.string().optional(),
+  resume: z.boolean().optional(),
+  /** 已完成的架构后设计取舍轮次。 */
+  designRounds: z.number().int().nonnegative().optional(),
+});
+export type RunMetadata = z.infer<typeof RunMetadata>;
 
 /* ───────────────────────── 运行阶段与受理响应（§5.1 / §5.2） ───────────────────────── */
 

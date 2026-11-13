@@ -53,14 +53,27 @@ export const CardAnswer = z.object({
 });
 export type CardAnswer = z.infer<typeof CardAnswer>;
 
+/** 卡片内的一步约束：一个字段 + 一组选项。 */
+export const ConstraintStep = z.object({
+  id: Id,
+  title: z.string(),
+  question: z.string(),
+  options: z.array(CardOption),
+});
+export type ConstraintStep = z.infer<typeof ConstraintStep>;
+
 export const ConstraintCard = z.object({
   id: Id,
   messageId: Id,
   kind: CardKind,
   title: z.string(),
   options: z.array(CardOption),
+  /** v1.1：多个约束合并到一张卡片，前端用箭头切换步骤。 */
+  steps: z.array(ConstraintStep).min(1).max(6).optional(),
   status: CardStatus,
   answer: CardAnswer.nullable(),
+  /** steps 卡片的所有字段答案；单卡片时可省略。 */
+  answers: z.record(z.string(), CardAnswer).optional(),
   createdAt: ISODateTime,
   answeredAt: ISODateTime.nullable(),
 });
@@ -137,17 +150,58 @@ export const SendMessageInput = z.object({
 });
 export type SendMessageInput = z.infer<typeof SendMessageInput>;
 
-export const AnswerCardInput = z.object({
-  cardId: Id.optional(),
-  values: z.array(z.string().trim().min(1)).min(1),
-  isCustom: z.boolean().default(false),
-});
+export const AnswerCardInput = z
+  .object({
+    cardId: Id.optional(),
+    /** 单卡片兼容：字段由 interrupt 或卡片第一步决定。 */
+    values: z.array(z.string().trim().min(1)).min(1).optional(),
+    isCustom: z.boolean().default(false),
+    /** steps 卡片：field -> answer。 */
+    answers: z.record(z.string(), CardAnswer).optional(),
+  })
+  .refine((value) => value.values !== undefined || value.answers !== undefined, {
+    message: "values 或 answers 至少提供一个",
+  });
 export type AnswerCardInput = z.infer<typeof AnswerCardInput>;
 
 export const ForkInput = z.object({
   sourceMessageId: Id,
 });
 export type ForkInput = z.infer<typeof ForkInput>;
+
+/** 原地回退：删除该消息之后的全部消息，并把画布恢复到该时间点。 */
+export const RewindInput = z.object({
+  sourceMessageId: Id,
+});
+export type RewindInput = z.infer<typeof RewindInput>;
+
+/* ───────────────────────── 画布布局（P2-15） ───────────────────────── */
+
+/** 节点坐标：与语义图分离，单独持久化，避免污染 Graph。 */
+export const CanvasNodePosition = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+export type CanvasNodePosition = z.infer<typeof CanvasNodePosition>;
+
+export const CanvasLayout = z.object({
+  nodes: z.record(Id, CanvasNodePosition),
+});
+export type CanvasLayout = z.infer<typeof CanvasLayout>;
+
+export const CanvasLayoutResult = z.object({
+  layout: CanvasLayout,
+  version: z.number().int().nonnegative(),
+  updatedAt: ISODateTime,
+});
+export type CanvasLayoutResult = z.infer<typeof CanvasLayoutResult>;
+
+/** 保存布局：baseVersion 用于独立于草稿的乐观锁。 */
+export const SaveCanvasLayoutInput = z.object({
+  layout: CanvasLayout,
+  baseVersion: z.number().int().nonnegative(),
+});
+export type SaveCanvasLayoutInput = z.infer<typeof SaveCanvasLayoutInput>;
 
 export const ForkResult = Conversation.extend({
   forkedFrom: z.object({

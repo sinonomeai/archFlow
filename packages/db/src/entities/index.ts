@@ -1,6 +1,7 @@
 import { AgentStateEntity } from "./agent-state.entity.js";
 import { AssetEntity } from "./asset.entity.js";
 import { ConversationEntity } from "./conversation.entity.js";
+import { ConversationCanvasLayoutEntity } from "./conversation-canvas-layout.entity.js";
 import { DocumentChunkEntity } from "./document-chunk.entity.js";
 import { KnowledgeFileEntity } from "./knowledge-file.entity.js";
 import { MessageEntity } from "./message.entity.js";
@@ -11,6 +12,7 @@ import { UserEntity } from "./user.entity.js";
 export { AgentStateEntity } from "./agent-state.entity.js";
 export { AssetEntity } from "./asset.entity.js";
 export { bigintNumberTransformer, UuidEntity } from "./base.entity.js";
+export { ConversationCanvasLayoutEntity } from "./conversation-canvas-layout.entity.js";
 export { ConversationEntity } from "./conversation.entity.js";
 export { DocumentChunkEntity } from "./document-chunk.entity.js";
 export { KnowledgeFileEntity } from "./knowledge-file.entity.js";
@@ -27,6 +29,7 @@ export const entities = [
   DocumentChunkEntity,
   AssetEntity,
   ConversationEntity,
+  ConversationCanvasLayoutEntity,
   MessageEntity,
   RunEntity,
   AgentStateEntity,
