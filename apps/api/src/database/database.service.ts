@@ -31,6 +31,22 @@ export class DatabaseService implements OnModuleInit, OnApplicationShutdown {
 
     await this.dataSource.initialize();
     this.logger.log("PostgreSQL 已连接");
+
+    /**
+     * MVP 单实例：进程退出后，内存中的运行已经不存在。
+     * 把遗留的 queued/running 标记为失败，避免前端重连后永远等不到 done。
+     * waiting_input 不处理，它仍可通过 HITL 恢复。
+     */
+    await this.dataSource.query(`
+      UPDATE "runs"
+         SET "status" = 'failed',
+             "finish_reason" = 'error',
+             "error_code" = 'INTERNAL_ERROR',
+             "error_message" = '服务重启，运行已中断',
+             "finished_at" = now(),
+             "updated_at" = now()
+       WHERE "status" IN ('queued', 'running')
+    `);
   };
 
   onApplicationShutdown = async (): Promise<void> => {

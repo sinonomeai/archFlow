@@ -23,6 +23,7 @@ type ErrorBody = {
   code: string;
   message: string;
   errors?: FieldError[];
+  data?: unknown;
 };
 
 const TRACE_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
@@ -95,10 +96,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const payload = {
       code: body.code,
       message: body.message,
-      data: null,
+      data: body.data ?? null,
       ...(body.errors ? { errors: body.errors } : {}),
       traceId,
-    } satisfies ApiResponse<null>;
+    } satisfies ApiResponse<unknown>;
 
     httpAdapter.setHeader(response, "X-Trace-Id", traceId);
     httpAdapter.reply(response, payload, status);
@@ -147,6 +148,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
             code,
             message,
             errors: parseFieldErrors(response.errors),
+            ...("data" in response ? { data: response.data } : {}),
           },
         };
       }

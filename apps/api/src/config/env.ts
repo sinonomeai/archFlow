@@ -32,6 +32,34 @@ const EnvSchema = z.object({
   MINIO_ACCESS_KEY: z.string().min(1).default("minioadmin"),
   MINIO_SECRET_KEY: z.string().min(1).default("minioadmin"),
   MINIO_BUCKET: z.string().min(1).default("archflow"),
+
+  /** 认证：生产必须覆盖默认值；access 15 分钟、refresh 30 天。 */
+  JWT_SECRET: z.string().min(16).default("archflow-dev-secret-change-me"),
+  JWT_ACCESS_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(15 * 60),
+  JWT_REFRESH_TTL_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(30 * 24 * 60 * 60),
+
+  /** Chat：兼容 OpenAI 协议；本地默认 deepseek-flash。 */
+  OPENAI_API_KEY: z.string().default(""),
+  OPENAI_BASE_URL: z.string().default("https://api.deepseek.com/v1"),
+  OPENAI_MODEL: z.string().default("deepseek-flash"),
+  /** 单次请求输出上限；deepseek-flash 的 reasoning 也占用该预算。 */
+  LLM_MAX_TOKENS: z.coerce.number().int().positive().default(16384),
+
+  /** Embedding：千问兼容 OpenAI 协议；未配置时 RAG 降级为关键词检索。 */
+  EMBEDDING_API_KEY: z.string().default(""),
+  EMBEDDING_BASE_URL: z
+    .string()
+    .default("https://dashscope.aliyuncs.com/compatible-mode/v1"),
+  EMBEDDING_MODEL: z.string().default("text-embedding-v4"),
+  EMBEDDING_DIM: z.coerce.number().int().positive().default(1536),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
