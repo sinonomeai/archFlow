@@ -86,7 +86,7 @@ export const useDeleteProject = () => {
 
   return useOptimisticDelete<DeleteProjectVariables>({
     mutationFn: ({ projectId }) =>
-      requestApiVoid(`/api/mock/projects/${projectId}`, { method: "DELETE" }),
+      requestApiVoid(`/projects/${projectId}`, { method: "DELETE" }),
     patch: () => null,
     successMessage: ({ name }) => `已删除项目“${name}”`,
     onDeleted: ({ isActive }) => {
@@ -106,7 +106,7 @@ type DeleteFileVariables = {
 export const useDeleteFile = () =>
   useOptimisticDelete<DeleteFileVariables>({
     mutationFn: ({ projectId, fileId }) =>
-      requestApiVoid(`/api/mock/projects/${projectId}/files/${fileId}`, {
+      requestApiVoid(`/projects/${projectId}/files/${fileId}`, {
         method: "DELETE",
       }),
     patch: (project, { fileId }) => ({
@@ -125,7 +125,7 @@ type DeleteAssetVariables = {
 export const useDeleteAsset = () =>
   useOptimisticDelete<DeleteAssetVariables>({
     mutationFn: ({ projectId, assetId }) =>
-      requestApiVoid(`/api/mock/projects/${projectId}/assets/${assetId}`, {
+      requestApiVoid(`/projects/${projectId}/assets/${assetId}`, {
         method: "DELETE",
       }),
     patch: (project, { assetId }) => ({
@@ -148,7 +148,7 @@ export const useDeleteConversation = () => {
 
   return useOptimisticDelete<DeleteConversationVariables>({
     mutationFn: ({ conversationId }) =>
-      requestApiVoid(`/api/mock/conversations/${conversationId}`, {
+      requestApiVoid(`/conversations/${conversationId}`, {
         method: "DELETE",
       }),
     patch: (project, { conversationId }) => {

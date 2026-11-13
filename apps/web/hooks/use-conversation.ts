@@ -13,9 +13,7 @@ export const useConversation = (conversationId: string | null) =>
         throw new Error("缺少 conversationId");
       }
 
-      return requestApi<Conversation>(
-        `/api/mock/conversations/${conversationId}`,
-      );
+      return requestApi<Conversation>(`/conversations/${conversationId}`);
     },
     enabled: conversationId !== null,
   });

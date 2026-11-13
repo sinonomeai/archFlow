@@ -23,9 +23,7 @@ export const useCreateConversation = () => {
 
   return useMutation<Conversation, Error, CreateConversationVariables>({
     mutationFn: ({ projectId, ...input }) =>
-      requestApi<Conversation>(
-        `/api/mock/projects/${projectId}/conversations`,
-        {
+      requestApi<Conversation>(`/projects/${projectId}/conversations`, {
           method: "POST",
           body: JSON.stringify(input),
         },

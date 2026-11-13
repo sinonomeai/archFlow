@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { harmonySans } from "./fonts";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -12,7 +13,12 @@ export const metadata: Metadata = {
 const themeScript = `(() => {
   try {
     const stored = window.localStorage.getItem("archflow-theme");
-    const isDark = stored ? stored === "dark" : true;
+    const isDark =
+      stored === "light"
+        ? false
+        : stored === "system"
+          ? window.matchMedia("(prefers-color-scheme: dark)").matches
+          : true;
     document.documentElement.classList.toggle("dark", isDark);
     document.documentElement.style.colorScheme = isDark ? "dark" : "light";
   } catch {
@@ -21,7 +27,11 @@ const themeScript = `(() => {
 })();`;
 
 const RootLayout = ({ children }: { children: ReactNode }) => (
-  <html lang="zh-CN" className="dark" suppressHydrationWarning>
+  <html
+    lang="zh-CN"
+    className={`dark ${harmonySans.variable}`}
+    suppressHydrationWarning
+  >
     <head>
       <script dangerouslySetInnerHTML={{ __html: themeScript }} />
     </head>

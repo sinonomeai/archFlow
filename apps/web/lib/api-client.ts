@@ -1,5 +1,13 @@
+"use client";
+
 import type { FieldError } from "@arch-flow/shared";
 import { ERROR_CODES } from "@arch-flow/shared/constants/error-codes";
+import { apiUrl } from "./api-config";
+import { refreshAccessToken } from "./auth";
+import { useAuthStore } from "./auth-store";
+import { clearSessionHint } from "./session";
+
+export { apiUrl };
 
 export class ApiError extends Error {
   code: string;
@@ -41,14 +49,6 @@ const parseFieldErrors = (value: unknown): FieldError[] | undefined => {
   return errors.length > 0 ? errors : undefined;
 };
 
-/**
- * 只校验统一响应外壳（API 文档 §1.3）。
- *
- * 实体字段的 Zod 校验由服务端在返回前完成（mock 路由的 mockOk、真实 API 的
- * ZodValidationPipe），客户端不再重复 parse 一遍：
- * 这份重复校验会把整个 zod 及全部 locale 打进首屏 JS（dev 下约 1.5MB）。
- * 返回类型仍由 @arch-flow/shared 的 schema 推导，调用方用泛型声明期望数据。
- */
 const parseEnvelope = (payload: unknown): ApiEnvelope => {
   if (
     !isRecord(payload) ||
@@ -70,60 +70,106 @@ const parseEnvelope = (payload: unknown): ApiEnvelope => {
 };
 
 const readEnvelope = async (response: Response): Promise<ApiEnvelope> => {
-  let payload: unknown;
-
   try {
-    payload = await response.json();
+    return parseEnvelope(await response.json());
   } catch {
     throw new Error(`服务端返回了非法 JSON（HTTP ${response.status}）`);
   }
-
-  return parseEnvelope(payload);
 };
 
-/**
- * 无响应体的请求入口：用于 DELETE 等契约规定 `204 No Content` 的接口。
- * 失败时仍按统一外壳解析错误信息。
- */
-export const requestApiVoid = async (
+const send = async (
   path: string,
   init?: RequestInit,
-): Promise<void> => {
-  const response = await fetch(path, init);
+): Promise<Response> => {
+  const headers = new Headers(init?.headers);
+  const token = useAuthStore.getState().accessToken;
 
-  if (response.ok) {
-    return;
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const envelope = await readEnvelope(response);
-
-  throw new ApiError(envelope.code, envelope.message, envelope.errors);
-};
-
-/**
- * 统一请求入口：校验 ApiResponse 外壳并返回 data。
- * 失败（code !== OK 或 data === null）抛 ApiError。
- */
-export const requestApi = async <T>(
-  path: string,
-  init?: RequestInit,
-): Promise<T> => {
-  const headers = new Headers(init?.headers);
-
-  if (init?.body && !headers.has("Content-Type")) {
+  // FormData 必须由运行时自动带 boundary，不能手动写成 application/json。
+  if (
+    init?.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has("Content-Type")
+  ) {
     headers.set("Content-Type", "application/json");
   }
 
-  const response = await fetch(path, { ...init, headers });
+  return fetch(apiUrl(path), {
+    ...init,
+    headers,
+    credentials: "include",
+  });
+};
+
+const clearSessionAndRedirect = (): void => {
+  useAuthStore.getState().clear();
+  /** 同步清掉路由提示 Cookie，否则 middleware 会把它弹回 /workspace。 */
+  clearSessionHint();
+
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/login")
+  ) {
+    window.location.href = "/login";
+  }
+};
+
+const shouldRefresh = (status: number, code: string): boolean =>
+  status === 401 &&
+  (code === ERROR_CODES.TOKEN_EXPIRED ||
+    code === ERROR_CODES.TOKEN_MISSING ||
+    code === ERROR_CODES.TOKEN_INVALID);
+
+const execute = async <T>(
+  path: string,
+  init: RequestInit | undefined,
+  retry: boolean,
+  expectData: boolean,
+): Promise<T> => {
+  const response = await send(path, init);
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
   const envelope = await readEnvelope(response);
 
-  if (envelope.code !== ERROR_CODES.OK || envelope.data === null) {
+  if (shouldRefresh(response.status, envelope.code) && retry) {
+    const refreshed = await refreshAccessToken();
+
+    if (refreshed) {
+      return execute<T>(path, init, false, expectData);
+    }
+
+    clearSessionAndRedirect();
+  }
+
+  if (envelope.code === ERROR_CODES.REFRESH_INVALID) {
+    clearSessionAndRedirect();
+  }
+
+  if (
+    !response.ok ||
+    envelope.code !== ERROR_CODES.OK ||
+    (expectData && envelope.data === null)
+  ) {
     throw new ApiError(envelope.code, envelope.message, envelope.errors);
   }
 
-  /**
-   * data 的字段形状由服务端按同一份 Zod schema 产出；
-   * 客户端只做了外壳检查，因此这里用调用方泛型收窄。
-   */
   return envelope.data as T;
 };
+
+/** 统一请求入口：自动带 token、401 静默刷新并重放一次。 */
+export const requestApi = async <T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> => execute<T>(path, init, true, true);
+
+/** 无响应体入口：DELETE 等 204 接口。 */
+export const requestApiVoid = async (
+  path: string,
+  init?: RequestInit,
+): Promise<void> => execute<void>(path, init, true, false);

@@ -4,18 +4,10 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Github,
-  Lock,
-  Mail,
-  User,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { loginRequest, registerRequest } from "@/lib/auth";
 import { setSessionHint } from "@/lib/session";
 
 type FormMode = "login" | "register";
@@ -25,33 +17,45 @@ export const LoginForm = () => {
   const [mode, setMode] = useState<FormMode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isRegister = mode === "register";
-  const isDev = process.env.NODE_ENV !== "production";
 
-  const enterApp = () => {
-    setSessionHint();
-    router.replace("/workspace");
-  };
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
+    const username = String(form.get("username") ?? "");
+    const confirmPassword = String(form.get("confirmPassword") ?? "");
 
-    if (!isDev) {
-      // TODO: 接入 POST /api/v1/auth/login，成功后再写会话提示并跳转。
+    if (isRegister && password !== confirmPassword) {
+      setError("两次输入的密码不一致");
       return;
     }
 
-    enterApp();
-  };
+    setPending(true);
+    setError(null);
 
-  const handleGithubLogin = () => {
-    if (isDev) {
-      enterApp();
+    try {
+      if (isRegister) {
+        await registerRequest({ username, email, password });
+      } else {
+        await loginRequest({ email, password });
+      }
+
+      setSessionHint();
+      router.replace("/workspace");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "请求失败，请稍后重试");
+    } finally {
+      setPending(false);
     }
   };
 
   const toggleMode = () => {
     setMode((current) => (current === "login" ? "register" : "login"));
+    setError(null);
   };
 
   return (
@@ -85,6 +89,8 @@ export const LoginForm = () => {
                   type="text"
                   autoComplete="username"
                   placeholder="你的用户名"
+                  minLength={1}
+                  maxLength={15}
                   className="pl-9"
                   required
                 />
@@ -138,6 +144,8 @@ export const LoginForm = () => {
                 type={showPassword ? "text" : "password"}
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 placeholder="输入密码"
+                minLength={6}
+                maxLength={16}
                 className="pl-9 pr-10"
                 required
               />
@@ -172,13 +180,17 @@ export const LoginForm = () => {
                   type={showConfirmPassword ? "text" : "password"}
                   autoComplete="new-password"
                   placeholder="再次输入密码"
+                  minLength={6}
+                  maxLength={16}
                   className="pl-9 pr-10"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword((value) => !value)}
-                  aria-label={showConfirmPassword ? "隐藏确认密码" : "显示确认密码"}
+                  aria-label={
+                    showConfirmPassword ? "隐藏确认密码" : "显示确认密码"
+                  }
                   className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:text-foreground"
                 >
                   {showConfirmPassword ? (
@@ -191,52 +203,26 @@ export const LoginForm = () => {
             </div>
           )}
 
-          <Button type="submit" size="lg" className="mt-1 w-full">
+          {error && (
+            <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-[11px] leading-5 text-destructive">
+              {error}
+            </p>
+          )}
+
+          <Button
+            type="submit"
+            size="lg"
+            className="mt-1 w-full"
+            disabled={pending}
+          >
+            {pending ? (
+              <Loader2 className="size-4 animate-spin" strokeWidth={1.75} />
+            ) : (
+              <ArrowRight className="size-4" strokeWidth={1.75} />
+            )}
             {isRegister ? "创建账号" : "登录"}
-            <ArrowRight className="size-4" strokeWidth={1.75} />
           </Button>
         </form>
-
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-background px-2 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              或
-            </span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          size="lg"
-          className="w-full"
-          onClick={handleGithubLogin}
-        >
-          <Github className="size-4" strokeWidth={1.75} />
-          使用 GitHub {isRegister ? "注册" : "登录"}
-        </Button>
-
-        {isDev && (
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-dashed border-border px-3 py-2.5">
-            <div className="min-w-0">
-              <p className="text-[11px] font-medium">开发环境</p>
-              <p className="mt-0.5 text-[10px] leading-4 text-muted-foreground">
-                跳过真实认证，直接进入应用
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="shrink-0"
-              onClick={enterApp}
-            >
-              <Zap className="size-3" strokeWidth={1.75} />
-              一键登录
-            </Button>
-          </div>
-        )}
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           {isRegister ? "已有账号？" : "还没有账号？"}{" "}
@@ -249,23 +235,6 @@ export const LoginForm = () => {
           </button>
         </p>
       </div>
-
-      <p className="mt-6 text-center text-[11px] leading-5 text-muted-foreground/70">
-        登录即表示你同意 ArchFlow 的{" "}
-        <Link
-          href="#"
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          服务条款
-        </Link>{" "}
-        与{" "}
-        <Link
-          href="#"
-          className="underline-offset-4 hover:text-foreground hover:underline"
-        >
-          隐私政策
-        </Link>
-      </p>
     </div>
   );
 };

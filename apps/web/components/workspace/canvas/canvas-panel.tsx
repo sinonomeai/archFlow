@@ -1,17 +1,14 @@
 "use client";
 
-import {
-  CircleHelp,
-  LayoutGrid,
-  Loader2,
-  Minus,
-  Plus,
-  Workflow,
-} from "lucide-react";
+import { useMemo, useState } from "react";
+import { LayoutGrid, Loader2, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  useCanvasLayout,
+  useSaveCanvasLayout,
+} from "@/hooks/use-canvas-layout";
 import { useConversation } from "@/hooks/use-conversation";
-import { parseMockGraph } from "@/lib/mock-graph";
-import { useWorkspaceStore } from "@/store/workspace-store";
+import { parseGraph } from "@/lib/graph";
 import { ArchitectureCanvas } from "./architecture-canvas";
 import { ExportMenu } from "./export-menu";
 
@@ -61,10 +58,13 @@ const CanvasStatus = ({
 
 export const CanvasPanel = ({ conversationId }: { conversationId: string | null }) => {
   const conversation = useConversation(conversationId);
-  const zoom = useWorkspaceStore((state) => state.zoom);
-  const increaseZoom = useWorkspaceStore((state) => state.increaseZoom);
-  const decreaseZoom = useWorkspaceStore((state) => state.decreaseZoom);
-  const graph = parseMockGraph(conversation.data?.draftGraph ?? null);
+  const canvasLayout = useCanvasLayout(conversationId);
+  const saveCanvasLayout = useSaveCanvasLayout(conversationId);
+  const [layoutSignal, setLayoutSignal] = useState(0);
+  const graph = useMemo(
+    () => parseGraph(conversation.data?.draftGraph ?? null),
+    [conversation.data?.draftGraph],
+  );
   const hasGraph = graph !== null && graph.nodes.length > 0;
   const title = conversation.data?.title ?? "未命名画布";
 
@@ -77,11 +77,20 @@ export const CanvasPanel = ({ conversationId }: { conversationId: string | null 
             <span className="truncate font-medium">{title}</span>
           </div>
           <span className="hidden h-4 w-px bg-border md:block" />
-          <Button variant="outline" size="sm" disabled={!hasGraph}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!hasGraph}
+            onClick={() => setLayoutSignal((value) => value + 1)}
+          >
             <LayoutGrid className="size-3.5" strokeWidth={1.75} />
             自动布局
           </Button>
-          <ExportMenu />
+          <ExportMenu
+            projectId={conversation.data?.projectId ?? null}
+            graph={graph}
+            conversationTitle={title}
+          />
         </div>
 
         <CanvasStatus
@@ -92,14 +101,38 @@ export const CanvasPanel = ({ conversationId }: { conversationId: string | null 
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden">
-        <div className="canvas-grid absolute inset-0" />
+        {/* 空状态用静态网格；有图时只保留 React Flow 会随平移移动的 Background。 */}
+        {!hasGraph && <div className="canvas-grid absolute inset-0" />}
 
         {hasGraph && graph && (
-          <div
-            className="relative h-full w-full transition-transform duration-200"
-            style={{ transform: `scale(${zoom / 100})` }}
-          >
-            <ArchitectureCanvas graph={graph} />
+          <div className="h-full w-full">
+            <ArchitectureCanvas
+              graph={graph}
+              layoutSignal={layoutSignal}
+              savedLayout={canvasLayout.data?.layout ?? null}
+              onLayoutChange={(layout) => saveCanvasLayout.mutate(layout)}
+            />
+          </div>
+        )}
+
+        {hasGraph && (
+          <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-3 rounded-md border border-border bg-card/90 px-2.5 py-1.5 text-[10px] text-muted-foreground shadow-sm backdrop-blur">
+            <span className="flex items-center gap-1">
+              <span className="h-px w-4 bg-[var(--edge)]" />
+              同步
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-px w-4 border-t border-dashed border-[#a78bfa]" />
+              异步
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-px w-4 bg-[#38bdf8]" />
+              数据
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-px w-4 bg-[#fbbf24]" />
+              控制
+            </span>
           </div>
         )}
 
@@ -123,36 +156,6 @@ export const CanvasPanel = ({ conversationId }: { conversationId: string | null 
             </div>
           </div>
         )}
-
-        <div className="absolute bottom-3 right-3 z-20 flex items-center overflow-hidden rounded-md border border-border bg-card">
-          <button
-            type="button"
-            aria-label="缩小画布"
-            onClick={decreaseZoom}
-            className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Minus className="size-3.5" strokeWidth={1.75} />
-          </button>
-          <span className="w-12 text-center text-[11px] tabular-nums text-muted-foreground">
-            {zoom}%
-          </span>
-          <button
-            type="button"
-            aria-label="放大画布"
-            onClick={increaseZoom}
-            className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Plus className="size-3.5" strokeWidth={1.75} />
-          </button>
-          <span className="h-4 w-px bg-border" />
-          <button
-            type="button"
-            aria-label="画布帮助"
-            className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <CircleHelp className="size-3.5" strokeWidth={1.75} />
-          </button>
-        </div>
       </div>
     </section>
   );

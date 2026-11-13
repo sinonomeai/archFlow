@@ -1,6 +1,7 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
+import { setThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 export type ThemeToggleProps = {
@@ -9,9 +10,8 @@ export type ThemeToggleProps = {
 
 export const ThemeToggle = ({ className }: ThemeToggleProps) => {
   const handleToggle = () => {
-    const isDark = document.documentElement.classList.toggle("dark");
-    document.documentElement.style.colorScheme = isDark ? "dark" : "light";
-    window.localStorage.setItem("archflow-theme", isDark ? "dark" : "light");
+    const isDark = document.documentElement.classList.contains("dark");
+    setThemeMode(isDark ? "light" : "dark");
   };
 
   return (

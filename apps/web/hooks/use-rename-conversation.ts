@@ -21,13 +21,10 @@ export const useRenameConversation = () => {
 
   return useMutation<Conversation, Error, RenameConversationVariables>({
     mutationFn: ({ conversationId, title }) =>
-      requestApi<Conversation>(
-        `/api/mock/conversations/${conversationId}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ title }),
-        },
-      ),
+      requestApi<Conversation>(`/conversations/${conversationId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      }),
     onSuccess: (conversation) => {
       queryClient.setQueryData<Page<ProjectNode>>(projectQueryKey, (current) =>
         current

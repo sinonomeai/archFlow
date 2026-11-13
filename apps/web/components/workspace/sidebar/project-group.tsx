@@ -9,19 +9,29 @@ import {
   useDeleteFile,
   useDeleteProject,
 } from "@/hooks/use-delete-project-items";
+import { useCreateConversation } from "@/hooks/use-create-conversation";
 import { CollapsibleSection } from "./collapsible-section";
 import { ConversationLink } from "./conversation-link";
 import { ItemActionsMenu } from "./item-actions-menu";
 import { NewConversationButton } from "./new-conversation-button";
+import { UploadFileButton } from "./upload-file-button";
 
 type SectionItemProps = {
   label: string;
   onDelete: () => void;
+  onOpen?: () => void;
 };
 
-const SectionItem = ({ label, onDelete }: SectionItemProps) => (
+const SectionItem = ({ label, onDelete, onOpen }: SectionItemProps) => (
   <div className="group/item flex h-7 items-center rounded-md pl-8 pr-1 text-[11px] text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-    <span className="min-w-0 flex-1 truncate">{label}</span>
+    <button
+      type="button"
+      onClick={onOpen}
+      disabled={!onOpen}
+      className="min-w-0 flex-1 truncate text-left disabled:cursor-default"
+    >
+      {label}
+    </button>
     <ItemActionsMenu itemName={label} onDelete={onDelete} />
   </div>
 );
@@ -33,6 +43,7 @@ export const ProjectGroup = ({ project }: { project: ProjectNode }) => {
   const deleteProject = useDeleteProject();
   const deleteFile = useDeleteFile();
   const deleteAsset = useDeleteAsset();
+  const createConversation = useCreateConversation();
   const Chevron = open ? ChevronDown : ChevronRight;
 
   const handleDeleteProject = () => {
@@ -66,7 +77,33 @@ export const ProjectGroup = ({ project }: { project: ProjectNode }) => {
 
       {open && (
         <div className="space-y-1">
-          <CollapsibleSection kind="knowledge" label="知识库">
+          <CollapsibleSection kind="assets" label="资产库">
+            {project.assets.map((asset) => (
+              <SectionItem
+                key={asset.id}
+                label={asset.name}
+                onOpen={() =>
+                  createConversation.mutate({
+                    projectId: project.id,
+                    initialAssetId: asset.id,
+                  })
+                }
+                onDelete={() =>
+                  deleteAsset.mutate({
+                    projectId: project.id,
+                    assetId: asset.id,
+                    name: asset.name,
+                  })
+                }
+              />
+            ))}
+          </CollapsibleSection>
+
+          <CollapsibleSection
+            kind="knowledge"
+            label="知识库"
+            action={<UploadFileButton projectId={project.id} />}
+          >
             {project.files.map((file) => (
               <SectionItem
                 key={file.id}
@@ -76,22 +113,6 @@ export const ProjectGroup = ({ project }: { project: ProjectNode }) => {
                     projectId: project.id,
                     fileId: file.id,
                     name: file.fileName,
-                  })
-                }
-              />
-            ))}
-          </CollapsibleSection>
-
-          <CollapsibleSection kind="assets" label="资产库">
-            {project.assets.map((asset) => (
-              <SectionItem
-                key={asset.id}
-                label={asset.name}
-                onDelete={() =>
-                  deleteAsset.mutate({
-                    projectId: project.id,
-                    assetId: asset.id,
-                    name: asset.name,
                   })
                 }
               />
