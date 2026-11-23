@@ -117,6 +117,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@arch-flow/agent':
+        specifier: workspace:*
+        version: link:../../packages/agent
       '@arch-flow/shared':
         specifier: workspace:*
         version: link:../../packages/shared

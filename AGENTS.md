@@ -44,8 +44,8 @@
 - **JSONB 应用**：画布数据（API 字段 `graph`；资产列 `graph_data`，会话草稿列 `current_draft_graph`）、消息元数据（`metadata`）、Agent 状态（`constraints_data`）必须使用 `JSONB` 类型存储。
 - **向量检索**：`documents_chunks` 表默认包含 `VECTOR(1536)` 字段，并使用 HNSW 索引。若所选 Embedding 模型不支持 1536 维，必须在灌入数据前统一改 schema，禁止新旧维度混用。查向量时**必须带上 `project_id` 过滤**，防止跨项目数据污染。
 
-## 6. 严禁修改/生成的功能（MVP 红线）
-- ❌ 不要写 WebSocket 协作代码。
+## 6. 不实现的功能（产品与 MVP 边界）
+- ❌ 多人协作已退出产品路线：不做项目成员、项目角色或多人实时编辑，不用 WebSocket / Yjs 做画布同步。保留项目所有者校验与草稿版本检查。
 - ❌ 不要写 PDF / DOCX 的解析逻辑（仅上传存储，不可被 Agent 引用）。图片（`image`）属于 MVP 范围，可上传可解析。
 - ❌ 不要引入 Redis 队列（BullMQ）处理异步任务。
 - ❌ 不要在 MVP 中生成 RabbitMQ / Go 文档解析服务代码；它们是 post-MVP 扩展，见 `specs/架构规划.md`。

@@ -1,10 +1,12 @@
 import { BrandMark } from "@/components/logo";
 import { CreateProjectButton } from "@/components/project/create-project-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PreviewHome } from "@/preview/components/preview-home";
 
 export const dynamic = "force-dynamic";
 
 const HomePage = () => {
+  if (process.env.MOCK_API === "1") return <PreviewHome />;
   return (
     <main className="dot-grid mask-fade relative flex min-h-dvh items-center justify-center overflow-hidden bg-background px-6">
       <ThemeToggle className="absolute right-6 top-6" />

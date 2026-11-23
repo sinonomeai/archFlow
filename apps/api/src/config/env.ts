@@ -13,6 +13,12 @@ const BooleanString = z
   .default("false")
   .transform((value) => value === "true");
 
+const OptionalString = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => value || undefined);
+
 const EnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -60,6 +66,10 @@ const EnvSchema = z.object({
     .default("https://dashscope.aliyuncs.com/compatible-mode/v1"),
   EMBEDDING_MODEL: z.string().default("text-embedding-v4"),
   EMBEDDING_DIM: z.coerce.number().int().positive().default(1536),
+
+  OPENAI_EMBEDDING_API_KEY: OptionalString,
+  OPENAI_EMBEDDING_BASE_URL: OptionalString,
+  OPENAI_EMBEDDING_MODEL: OptionalString,
 });
 
 export type Env = z.infer<typeof EnvSchema>;

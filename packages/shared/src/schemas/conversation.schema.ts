@@ -97,10 +97,13 @@ export const Usage = z.object({
 });
 export type Usage = z.infer<typeof Usage>;
 
+export const SuggestedQuestions = z.array(z.string().trim().min(1).max(100)).max(3);
+
 export const MessageMetadata = z.object({
   card: ConstraintCard.optional(),
   citations: z.array(Citation).optional(),
   usage: Usage.optional(),
+  suggestedQuestions: SuggestedQuestions.optional(),
 });
 export type MessageMetadata = z.infer<typeof MessageMetadata>;
 
@@ -147,6 +150,7 @@ export type MessageListQuery = z.infer<typeof MessageListQuery>;
 export const SendMessageInput = z.object({
   content: z.string().trim().min(1).max(20000),
   attachments: z.array(Id).max(5).optional(),
+  graphReferenceMessageId: Id.optional(),
 });
 export type SendMessageInput = z.infer<typeof SendMessageInput>;
 

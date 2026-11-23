@@ -10,6 +10,8 @@ export const metadata: Metadata = {
   description: "约束驱动的 AI 架构决策助手",
 };
 
+export const dynamic = "force-dynamic";
+
 const themeScript = `(() => {
   try {
     const stored = window.localStorage.getItem("archflow-theme");
@@ -36,7 +38,7 @@ const RootLayout = ({ children }: { children: ReactNode }) => (
       <script dangerouslySetInnerHTML={{ __html: themeScript }} />
     </head>
     <body className="min-h-dvh bg-background text-foreground antialiased">
-      <Providers>
+      <Providers preview={process.env.MOCK_API === "1"}>
         {children}
         <Toaster position="bottom-right" offset={{ bottom: 24, right: 24 }} />
       </Providers>

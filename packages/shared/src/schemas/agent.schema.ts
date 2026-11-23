@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FinishReason, Id, ISODateTime, RunStatus } from "./common.schema.js";
-import { ConstraintCard } from "./conversation.schema.js";
+import { ConstraintCard, SendMessageInput } from "./conversation.schema.js";
+import { AgentCheckpoint } from "./orchestration.schema.js";
 
 /** 运行失败明细：code 是 §1.5 的常量表，message 只承载展示文案。 */
 export const RunError = z.object({
@@ -69,6 +70,22 @@ export const RunMetadata = z.object({
   designRounds: z.number().int().nonnegative().optional(),
 });
 export type RunMetadata = z.infer<typeof RunMetadata>;
+
+export const ExperimentalRunMetadata = RunMetadata.extend({
+  attachments: SendMessageInput.shape.attachments.default([]),
+  receipts: z
+    .array(z.object({ key: z.string().min(1), hash: z.string().min(1) }))
+    .default([]),
+  usedInterrupts: z.record(z.uuid(), z.string()).default({}),
+  checkpoint: AgentCheckpoint.optional(),
+  response: z
+    .object({ messageId: z.string(), answer: SendMessageInput.shape.content })
+    .optional(),
+  lease: z
+    .object({ token: z.uuid(), expiresAt: ISODateTime })
+    .optional(),
+}).loose();
+export type ExperimentalRunMetadata = z.infer<typeof ExperimentalRunMetadata>;
 
 /* ───────────────────────── 运行阶段与受理响应（§5.1 / §5.2） ───────────────────────── */
 

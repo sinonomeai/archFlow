@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@arch-flow/agent": "workspace:*",
     "@arch-flow/shared": "workspace:*",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@tanstack/react-query": "^5.62.0",

@@ -5,8 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { bootstrapSession } from "@/lib/auth";
 import { watchSystemTheme } from "@/lib/theme";
+import {
+  connectAuthTabs,
+  getAuthState,
+  restoreSession,
+  subscribeToAuthState,
+} from "@/preview/lib/api-client";
 
-export const Providers = ({ children }: { children: ReactNode }) => {
+export const Providers = ({ children, preview }: { children: ReactNode; preview: boolean }) => {
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -20,10 +26,25 @@ export const Providers = ({ children }: { children: ReactNode }) => {
       }),
   );
 
-  /** 刷新页面后静默续期；失败时后续请求会 401 并跳登录。 */
   useEffect(() => {
-    void bootstrapSession();
-  }, []);
+    if (!preview) {
+      void bootstrapSession();
+      return;
+    }
+
+    let userId = getAuthState().user?.id;
+    const unsubscribe = subscribeToAuthState(() => {
+      const nextUserId = getAuthState().user?.id;
+      if (nextUserId !== userId) queryClient.clear();
+      userId = nextUserId;
+    });
+    const disconnect = connectAuthTabs();
+    if (getAuthState().status === "checking") void restoreSession();
+    return () => {
+      unsubscribe();
+      disconnect?.();
+    };
+  }, [preview, queryClient]);
 
   useEffect(() => watchSystemTheme(), []);
 

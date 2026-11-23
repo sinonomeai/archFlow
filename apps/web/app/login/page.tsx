@@ -1,6 +1,9 @@
 import { LoginForm } from "@/components/login-form";
 import { BrandMark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LoginForm as PreviewLoginForm } from "@/preview/components/login-form";
+
+export const dynamic = "force-dynamic";
 
 const LoginPage = () => (
   <main className="grid min-h-dvh bg-background lg:grid-cols-2">
@@ -37,7 +40,7 @@ const LoginPage = () => (
 
     <section className="relative flex min-h-dvh items-center justify-center px-6 py-16">
       <ThemeToggle className="absolute right-6 top-6" />
-      <LoginForm />
+      {process.env.MOCK_API === "1" ? <PreviewLoginForm /> : <LoginForm />}
     </section>
   </main>
 );

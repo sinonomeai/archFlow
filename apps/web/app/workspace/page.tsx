@@ -1,4 +1,5 @@
 import { WorkspaceView } from "@/components/workspace/workspace-view";
+import { PreviewWorkspaceView } from "@/preview/components/preview-workspace-view";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,11 @@ const WorkspacePage = async ({ searchParams }: WorkspacePageProps) => {
     ? (conversationId[0] ?? null)
     : (conversationId ?? null);
 
-  return <WorkspaceView conversationId={resolvedConversationId} />;
+  return process.env.MOCK_API === "1" ? (
+    <PreviewWorkspaceView conversationId={resolvedConversationId} />
+  ) : (
+    <WorkspaceView conversationId={resolvedConversationId} />
+  );
 };
 
 export default WorkspacePage;

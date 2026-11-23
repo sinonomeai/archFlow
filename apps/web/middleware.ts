@@ -4,6 +4,7 @@ import { SESSION_HINT_COOKIE } from "@/lib/session";
 const PROTECTED_PATHS = ["/", "/workspace"];
 
 export const middleware = (request: NextRequest) => {
+  if (process.env.MOCK_API === "1") return NextResponse.next();
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.get(SESSION_HINT_COOKIE)?.value === "1";
   const isProtected = PROTECTED_PATHS.some(
